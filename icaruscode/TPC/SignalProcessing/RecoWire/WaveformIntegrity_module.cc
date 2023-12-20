@@ -43,10 +43,6 @@
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "lardata/ArtDataHelper/WireCreator.h"
 #include "lardata/Utilities/AssociationUtil.h"
-#include "larevt/CalibrationDBI/Interface/DetPedestalService.h"
-#include "larevt/CalibrationDBI/Interface/DetPedestalProvider.h"
-#include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
-#include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 
 #include "icaruscode/TPC/SignalProcessing/RecoWire/DeconTools/IROIFinder.h"
 #include "icaruscode/TPC/SignalProcessing/RecoWire/DeconTools/IDeconvolution.h"
@@ -88,9 +84,6 @@ class WaveformIntegrity : public art::ReplicatedProducer
     icarus_signal_processing::WaveformTools<float>             fWaveformTool;
 
     const geo::GeometryCore*                                   fGeometry        = lar::providerFrom<geo::Geometry>();
-    const lariov::ChannelStatusProvider*                       fChannelFilter   = lar::providerFrom<lariov::ChannelStatusService>();
-    const lariov::DetPedestalProvider*                         fPedRetrievalAlg = lar::providerFrom<lariov::DetPedestalService>();
-    
 }; // class WaveformIntegrity
 
 DEFINE_ART_MODULE(WaveformIntegrity)

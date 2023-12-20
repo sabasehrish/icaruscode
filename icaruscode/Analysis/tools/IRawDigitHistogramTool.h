@@ -19,6 +19,8 @@
 #include "canvas/Persistency/Common/Ptr.h"
 #include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/Simulation/SimChannel.h"
+#include "larevt/CalibrationDBI/Interface/CalibrationDBIFwd.h"
+
 namespace detinfo {
   class DetectorClocksData;
   class DetectorPropertiesData;
@@ -64,7 +66,9 @@ public:
     
     virtual void fillHistograms(const detinfo::DetectorClocksData&,
                                 const detinfo::DetectorPropertiesData&,
-                                const RawDigitPtrVec&, const SimChannelMap&)  const = 0;
+                                const RawDigitPtrVec&, 
+                                const SimChannelMap&, 
+                                const lariov::DBTimeStamp_t)  const = 0;
 };
 
 #endif

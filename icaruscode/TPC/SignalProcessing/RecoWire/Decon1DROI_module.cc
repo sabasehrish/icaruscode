@@ -141,7 +141,7 @@ class Decon1DROI : public art::ReplicatedProducer
     icarus_signal_processing::WaveformTools<float>             fWaveformTool;
 
     const geo::GeometryCore*                                   fGeometry        = lar::providerFrom<geo::Geometry>();
-    const lariov::ChannelStatusProvider*                       fChannelFilter   = lar::providerFrom<lariov::ChannelStatusService>();
+    art::ServiceHandle<lariov::ChannelStatusService>           fChannelFilter;
     const lariov::DetPedestalProvider*                         fPedRetrievalAlg = lar::providerFrom<lariov::DetPedestalService>();
     
     // Define here a temporary set of histograms...
@@ -435,9 +435,9 @@ void  Decon1DROI::processChannel(size_t                                  idx,
     art::Ptr<raw::RawDigit> digitVec(digitVecHandle, idx);
 
     raw::ChannelID_t channel = digitVec->Channel();
-    
+    auto const channelStatus = fChannelFilter->DataFor(event); 
     // The following test is meant to be temporary until the "correct" solution is implemented
-    if (!fChannelFilter->IsPresent(channel)) return;
+    if (!channelStatus->IsPresent(channel)) return;
 
     // The waveforms should have been set to a 0. pedestal...
     float pedestal = 0.;
@@ -446,7 +446,7 @@ void  Decon1DROI::processChannel(size_t                                  idx,
     std::vector<geo::WireID> wids = fGeometry->ChannelToWire(channel);
     
     // skip bad channels
-    if( fChannelFilter->Status(channel) < fMinAllowedChanStatus) return;
+    if( channelStatus->Status(channel) < fMinAllowedChanStatus) return;
 
     size_t dataSize = digitVec->Samples();
     
@@ -462,7 +462,7 @@ void  Decon1DROI::processChannel(size_t                                  idx,
     // When we have a pedestal database, can provide the digit timestamp as the third argument of GetPedestalMean
     try
     {
-        pedestal = fPedRetrievalAlg->PedMean(channel);
+        pedestal = fPedRetrievalAlg->PedMean(event.time().value(), channel);
     }
     catch(...)
     {

@@ -403,11 +403,11 @@ double                fChi2NDF;                  ///maximum Chisquared / NDF all
       if(fThetaAngle==80) {minWireC=2539; maxWireC=2740;}
 
       //GET THE LIST OF BAD CHANNELS.
-      lariov::ChannelStatusProvider const& channelStatus
-        = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+      auto const& channelStatus
+        = art::ServiceHandle<lariov::ChannelStatusService>()->DataFor(evt);
 
-      lariov::ChannelStatusProvider::ChannelSet_t const BadChannels
-        = channelStatus.BadChannels();
+      auto const BadChannels
+        = channelStatus->BadChannels();
  
       unsigned int minWireI2=2539; //empirical
       unsigned int maxWireI2=4700;

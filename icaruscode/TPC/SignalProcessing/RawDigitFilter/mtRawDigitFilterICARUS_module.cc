@@ -86,7 +86,8 @@ public:
                       vector<vector<caldata::RawDigitVector>>& rawadcgvec,
                       vector<vector<WireChar>>& wgcvec,
                       vector<vector<vector <int>>>& wgqvec,
-                      std::unique_ptr<std::vector<raw::RawDigit> >& filteredRawDigit)const;
+                      std::unique_ptr<std::vector<raw::RawDigit> >& filteredRawDigit, 
+                      lariov::DBTimeStamp_t ts)const;
     void RemoveCorrelatedNoise(unsigned int igrp, unsigned int& fftSize, unsigned int& halfFFTSize, void* fplan, void* rplan,
                                vector<vector<caldata::RawDigitVector>>& rawadcgvec,
                                vector<vector<WireChar>>& wgcvec,
@@ -159,7 +160,8 @@ class lartbb_WaveformChar {
       vector<vector<caldata::RawDigitVector>>& rawadcgv,
       vector<vector<WireChar>>& wgcv,
       vector<vector<vector <int>>>& wgqv,
-      std::unique_ptr<std::vector<raw::RawDigit> >& filteredrawdigit)
+      std::unique_ptr<std::vector<raw::RawDigit> >& filteredrawdigit,
+      lariov::DBTimeStamp_t ts)
       : prod(prod),
         fDataSize(fdatasize),
         fftSize(fftsize),
@@ -170,11 +172,12 @@ class lartbb_WaveformChar {
         rawadcgvec(rawadcgv),
         wgcvec(wgcv),
         wgqvec(wgqv),
-        filteredRawDigit(filteredrawdigit){}
+        filteredRawDigit(filteredrawdigit),
+        fts(ts){}
     void operator()(const tbb::blocked_range<size_t>& range) const{
       //std::cout << " !!!!!!!!!! range.begin(): " << range.begin() << " and range.end(): " << range.end() << std::endl;
       for (size_t i = range.begin(); i < range.end(); ++i)
-        prod.WaveformChar(i, fDataSize, fftSize, fplan, rplan, igwvec, rawDigitVec, rawadcgvec, wgcvec, wgqvec, filteredRawDigit);
+        prod.WaveformChar(i, fDataSize, fftSize, fplan, rplan, igwvec, rawDigitVec, rawadcgvec, wgcvec, wgqvec, filteredRawDigit, fts);
     }
   private:
     RawDigitFilterICARUS const & prod;
@@ -188,6 +191,7 @@ class lartbb_WaveformChar {
     vector<vector<WireChar>>& wgcvec;
     vector<vector<vector <int>>>& wgqvec;
     std::unique_ptr<std::vector<raw::RawDigit> >& filteredRawDigit;
+    lariov::DBTimeStamp_t fts;
 };
 
 //----------------------------------------------------------------------------
@@ -460,7 +464,7 @@ void RawDigitFilterICARUS::produce(art::Event & event, art::ProcessingFrame cons
     //}
     // ... Launch multiple threads with TBB to do the waveform characterization and fft correction in parallel
     auto func = lartbb_WaveformChar(*this, fDataSize, fftSize, lfftwp.fPlan, lfftwp.rPlan, igwvec, rawDigitVec,
-                                    rawadcgvec, wgcvec, wgqvec, filteredRawDigit);
+                                    rawadcgvec, wgcvec, wgqvec, filteredRawDigit, event.time().value());
     tbb::parallel_for(tbb::blocked_range<size_t>(0, igwvec.size()), func);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -702,7 +706,8 @@ void RawDigitFilterICARUS::WaveformChar(unsigned int i, unsigned int& fDataSize,
                                         vector<vector<caldata::RawDigitVector>>& rawadcgvec,
                                         vector<vector<WireChar>>& wgcvec,
                                         vector<vector<vector <int>>>& wgqvec,
-                                        std::unique_ptr<std::vector<raw::RawDigit> >& filteredRawDigit)const{
+                                        std::unique_ptr<std::vector<raw::RawDigit> >& filteredRawDigit, 
+                                        lariov::DBTimeStamp_t ts)const{
   int igrp = igwvec[i].group;
   int iwdx = igwvec[i].windx;
   int irdg = igwvec[i].irawdig;
@@ -725,7 +730,7 @@ void RawDigitFilterICARUS::WaveformChar(unsigned int i, unsigned int& fDataSize,
 
   if (fDoFFTCorrection){
       // .. Subtract the pedestal
-      float pedestal = fPedestalRetrievalAlg.PedMean(channel);
+      float pedestal = fPedestalRetrievalAlg.PedMean(ts, channel);
       std::vector<float> holder(fftSize);
       std::transform(rawADC.begin(),rawADC.end(),holder.begin(),[pedestal](const auto& val){return float(float(val) - pedestal);});
 

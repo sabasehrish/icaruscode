@@ -91,29 +91,23 @@ icarus::calo::NormalizeDriftSQLite::RunInfo icarus::calo::NormalizeDriftSQLite::
   // Look up the run
   //
   // Translate the run into a fake "timestamp"
-  fDB.UpdateData((run+1000000000)*1000000000);
+  auto billion = 1e9;
+  auto dataset = fDB.GetDataset((run+billion)*billion);
 
   RunInfo thisrun;
 
   // Iterate over the rows
   // Should be 4: one for each TPC
-  for (unsigned ch = 0; ch < 4; ch++) {
-    double tau;
-
-    fDB.GetNamedChannelData(ch, "elifetime", tau);
-
-    // Map channel to TPC
-    if (ch == 0) thisrun.tau_EE = tau;
-    if (ch == 1) thisrun.tau_EW = tau;
-    if (ch == 2) thisrun.tau_WE = tau;
-    if (ch == 3) thisrun.tau_WW = tau;
-  }
+  // Map channel to TPC
+  thisrun.tau_EE = dataset.GetDataAsDouble(0, "elifetime");
+  thisrun.tau_EW = dataset.GetDataAsDouble(1, "elifetime");
+  thisrun.tau_WE = dataset.GetDataAsDouble(2, "elifetime");
+  thisrun.tau_WW = dataset.GetDataAsDouble(3, "elifetime");
 
   if (fVerbose) std::cout << "NormalizeDriftSQLite Tool -- Lifetime Data:" << "\nTPC EE: " << thisrun.tau_EE << "\nTPC EW: " << thisrun.tau_EW << "\nTPC WE: " << thisrun.tau_WE << "\nTPC WW: " << thisrun.tau_WW << std::endl;
 
   // Set the cache
   fRunInfos[run] = thisrun;
-
   return thisrun;
 }
 

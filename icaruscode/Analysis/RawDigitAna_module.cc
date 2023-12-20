@@ -192,6 +192,7 @@ void RawDigitAna::analyze(const art::Event& event)
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(event);
     auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataFor(event, clockData);
 
+    auto const ts = event.time().value();
     // Loop over RawDigits
     for(const auto& rawDigitLabel : fRawDigitProducerLabelVec)
     {
@@ -217,8 +218,7 @@ void RawDigitAna::analyze(const art::Event& event)
         {
             IRawDigitHistogramTool::RawDigitPtrVec allRawDigitVec;
             art::fill_ptr_vector(allRawDigitVec, rawDigitHandle);
-            
-            for(auto& rawDigitHistTool : fRawDigitHistogramToolVec) rawDigitHistTool->fillHistograms(clockData, detProp, allRawDigitVec,channelMap);
+            for(auto& rawDigitHistTool : fRawDigitHistogramToolVec) rawDigitHistTool->fillHistograms(clockData, detProp, allRawDigitVec, channelMap, ts);
         }
     }
 

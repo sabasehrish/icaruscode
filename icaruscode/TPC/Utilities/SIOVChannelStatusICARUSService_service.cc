@@ -1,10 +1,8 @@
 #include "art/Framework/Principal/Event.h"
-#include "art/Framework/Services/Registry/ActivityRegistry.h"
 #include "art/Framework/Services/Registry/ServiceDefinitionMacros.h"
-#include "art/Persistency/Provenance/ScheduleContext.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "larcore/CoreUtils/EnsureOnlyOneSchedule.h"
+#include "larevt/CalibrationDBI/IOVData/SIOVChannelStatusData.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
 #include "larevt/CalibrationDBI/Providers/SIOVChannelStatusProvider.h"
 
@@ -16,19 +14,12 @@ namespace lariov {
      a channel status retrieval service for database scheme in which
      all elements in a database folder share a common interval of validity
   */
-  class SIOVChannelStatusICARUSService : public ChannelStatusService,
-                                   private lar::EnsureOnlyOneSchedule<SIOVChannelStatusICARUSService> {
-
+  class SIOVChannelStatusICARUSService : public ChannelStatusService {
   public:
-    SIOVChannelStatusICARUSService(fhicl::ParameterSet const& pset, art::ActivityRegistry& reg);
-
-    void PreProcessEvent(const art::Event& evt, art::ScheduleContext);
+    SIOVChannelStatusICARUSService(fhicl::ParameterSet const& pset);
 
   private:
-    const ChannelStatusProvider& DoGetProvider() const override { return fProvider; }
-
-    const ChannelStatusProvider* DoGetProviderPtr() const override { return &fProvider; }
-
+    ChannelStatusDataPtr DataFor(art::Event const& evt) const override;
     SIOVChannelStatusProvider fProvider;
   };
 } //end namespace lariov
@@ -39,16 +30,12 @@ DECLARE_ART_SERVICE_INTERFACE_IMPL(lariov::SIOVChannelStatusICARUSService,
 
 namespace lariov {
 
-  SIOVChannelStatusICARUSService::SIOVChannelStatusICARUSService(fhicl::ParameterSet const& pset,
-                                                     art::ActivityRegistry& reg)
+  SIOVChannelStatusICARUSService::SIOVChannelStatusICARUSService(fhicl::ParameterSet const& pset)
     : fProvider(pset.get<fhicl::ParameterSet>("ChannelStatusProvider"))
   {
-
-    //register callback to update local database cache before each event is processed
-    reg.sPreProcessEvent.watch(this, &SIOVChannelStatusICARUSService::PreProcessEvent);
   }
 
-  void SIOVChannelStatusICARUSService::PreProcessEvent(const art::Event& evt, art::ScheduleContext)
+  ChannelStatusDataPtr SIOVChannelStatusICARUSService::DataFor(const art::Event& evt) const
   {
     // LArSoft follows MicroBooNE convention where time stamp is in ns referenced to the epoch
     std::uint64_t timeStamp = evt.time().value();
@@ -60,8 +47,7 @@ namespace lariov {
 
     mf::LogInfo("SIOVChannelStatusICARUSService") << "==> PreProcessEvent using timestamp (ns): " << timeStamp << ", timeHigh: " << evt.time().timeHigh() << ", timeLow: " << evt.time().timeLow();
 
-    //First grab an update from the database
-    fProvider.UpdateTimeStamp(timeStamp);
+    return std::make_shared<SIOVChannelStatusData>(&fProvider, timeStamp);
   }
 
 } //end namespace lariov

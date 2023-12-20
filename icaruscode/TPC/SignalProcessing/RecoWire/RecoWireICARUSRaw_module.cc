@@ -69,8 +69,7 @@ namespace recowireraw {
     std::string  fDigitModuleLabel;  ///< module that made digits
     TH1F* fWireRMS;
 
-    const lariov::ChannelStatusProvider* fChannelFilter  = lar::providerFrom<lariov::ChannelStatusService>();
-
+    art::ServiceHandle<lariov::ChannelStatusService> fChannelFilter;
   protected: 
     
   }; // class RecoWireICARUSRaw
@@ -150,7 +149,7 @@ namespace recowireraw{
 
         wirecol->reserve(digitVecHandle->size());
         // loop over all wires
-      
+        auto const channelStatus = fChannelFilter->DataFor(evt); 
         for(unsigned int rdIter = 0; rdIter < digitVecHandle->size(); ++rdIter) { // ++ move
             holder.clear();
       
@@ -158,7 +157,7 @@ namespace recowireraw{
             channel = digitVec->Channel();
     
             // The following test is meant to be temporary until the "correct" solution is implemented
-            if (!fChannelFilter->IsPresent(channel)) continue;
+            if (!channelStatus->IsPresent(channel)) continue;
 
             std::vector<geo::WireID> wids = geom->ChannelToWire(channel);
 

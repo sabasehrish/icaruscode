@@ -598,7 +598,7 @@ void ThroughgoingmuonAnalyzer::analyze(art::Event const& evt)
     for(const auto& mcParticle : *mcParticleHandle)
         trackIDToMCParticleMap[mcParticle.TrackId()] = &mcParticle;
     
-    const lariov::ChannelStatusProvider& chanFilt = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+    auto const chanFilt = art::ServiceHandle<lariov::ChannelStatusService>()->DataFor(evt);
 
     // Look up the list of bad channels
     art::Handle< std::vector<int>> badChannelHandle;
@@ -683,10 +683,10 @@ void ThroughgoingmuonAnalyzer::analyze(art::Event const& evt)
             if (fUseBadChannelDB)
             {
     	          // This is the "correct" way to check and remove bad channels...
-                if( chanFilt.Status(chanToTDCToIDEMap.first) < fMinAllowedChanStatus)
+                if( chanFilt->Status(chanToTDCToIDEMap.first) < fMinAllowedChanStatus)
                 {
                     std::vector<geo::WireID> wids = fGeometry->ChannelToWire(chanToTDCToIDEMap.first);
-                    std::cout << "*** skipping bad channel with status: " << chanFilt.Status(chanToTDCToIDEMap.first) 
+                    std::cout << "*** skipping bad channel with status: " << chanFilt->Status(chanToTDCToIDEMap.first) 
                           << " for channel: "                         << chanToTDCToIDEMap.first 
                           << ", plane: "                              << wids[0].Plane 
                           << ", wire: "                               << wids[0].Wire    << std::endl;

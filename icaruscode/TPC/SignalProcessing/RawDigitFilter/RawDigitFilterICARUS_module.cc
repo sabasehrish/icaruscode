@@ -370,7 +370,7 @@ void RawDigitFilterICARUS::produce(art::Event & event, art::ProcessingFrame cons
             if (fDoFFTCorrection)
             {
                 // .. Subtract the pedestal
-                double pedestal = fPedestalRetrievalAlg.PedMean(channel);
+                double pedestal = fPedestalRetrievalAlg.PedMean(event.time().value(), channel);
 
                 icarusutil::TimeVec holder(fftSize);
 

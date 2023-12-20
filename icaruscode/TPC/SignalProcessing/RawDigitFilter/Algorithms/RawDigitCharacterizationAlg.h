@@ -74,6 +74,7 @@ public:
    
     // Basic waveform mean, rms and pedestal offset
     void getMeanRmsAndPedCor(const RawDigitVector& rawWaveform,
+                             lariov::DBTimeStamp_t ts,
                              unsigned int          channel,
                              unsigned int          view,
                              unsigned int          wire,

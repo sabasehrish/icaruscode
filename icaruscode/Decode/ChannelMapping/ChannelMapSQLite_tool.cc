@@ -504,24 +504,16 @@ int buildTPCFragmentIDToReadoutIDMap_callback(void* dataIn, int argc, char**argv
     
     lariov::DBFolder database(fCalibDBFileName, "", "", fTag, true, false);
     
-    database.UpdateData(1638918271*1e9);
-    
-    std::vector<unsigned int> channels;
-    database.GetChannelList(channels);
-    
-    for (auto it = channels.begin(); it != channels.end(); ++it) {
-      
-      long mac5, chan;
-      double  gain, ped;
-      
+    auto const dataset = database.GetDataset(1638918271*1e9);
+    for (auto channel: dataset.channels()) { 
       // Start extracting info
-      database.GetNamedChannelData(*it, "mac5", mac5);
-      database.GetNamedChannelData(*it, "localchannel", chan);
-      database.GetNamedChannelData(*it, "gain", gain);
-      database.GetNamedChannelData(*it, "pedestal", ped);
+      int mac5 = dataset.GetDataAsLong(channel, "mac5");
+      int chan = dataset.GetDataAsLong(channel, "localchannel");
+      auto gain = dataset.GetDataAsDouble(channel, "gain");
+      auto ped = dataset.GetDataAsDouble(channel, "pedestal");
       
       // Fill the map
-      sideCRTChannelToCalibrationMap.insert(std::make_pair(std::make_pair((int)mac5,(int)chan), std::make_pair(gain,ped)));
+      sideCRTChannelToCalibrationMap.insert(std::make_pair(std::make_pair(mac5, chan), std::make_pair(gain,ped)));
     }
 
     return 0;

@@ -160,20 +160,22 @@ const icarus::calo::NormalizeYZSQL::ScaleInfo& icarus::calo::NormalizeYZSQL::Get
   }
 
   // Prep data
-  fDB.UpdateData(timestamp*1e9);
+  auto const dataset = fDB.GetDataset(timestamp*1e9);
 
   // Collect the timestamp info
   ScaleInfo thisscale;
 
   // Lookup the channels
-  std::vector<lariov::DBChannelID_t> channels;
-  fDB.GetChannelList(channels);
+  auto channels = dataset.channels(); 
 
   // Iterate over the channels
   thisscale.bins.reserve(channels.size());
-  for (unsigned ch = 0; ch < channels.size(); ch++) {
-    std::string tpcname;
-    fDB.GetNamedChannelData(ch, "tpc", tpcname);
+
+// SS: The values of elements in channels is not used in the loop below, only the size is used
+// Is that on purpose? 
+//
+ for (unsigned ch = 0; ch < channels.size(); ch++) {
+    auto tpcname = dataset.GetDataAsString(ch, "tpc");
     int itpc = -1;
     if (tpcname == "EE") itpc = 0;
     else if (tpcname == "EW") itpc = 1;
@@ -184,15 +186,13 @@ const icarus::calo::NormalizeYZSQL::ScaleInfo& icarus::calo::NormalizeYZSQL::Get
     }
 
     // Bin limits
-    double ylo, yhi, zlo, zhi;
-    fDB.GetNamedChannelData(ch, "ylow", ylo);
-    fDB.GetNamedChannelData(ch, "yhigh", yhi);
-    fDB.GetNamedChannelData(ch, "zlow", zlo);
-    fDB.GetNamedChannelData(ch, "zhigh", zhi);
+    auto ylo = dataset.GetDataAsDouble(ch, "ylow");
+    auto yhi = dataset.GetDataAsDouble(ch, "yhigh");
+    auto zlo = dataset.GetDataAsDouble(ch, "zlow");
+    auto zhi = dataset.GetDataAsDouble(ch, "zhigh");
     
     // Get the scale
-    double scale;
-    fDB.GetNamedChannelData(ch, "scale", scale);
+    auto scale = dataset.GetDataAsDouble(ch, "scale");
 
     ScaleInfo::ScaleBin bin;
     bin.ylo = ylo;

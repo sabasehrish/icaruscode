@@ -345,10 +345,10 @@ void RawDigitSmoother::produce(art::Event & event)
             float pedCorVal;
             
             // Recover the mean and rms for this waveform
-            fCharacterizationAlg.getMeanRmsAndPedCor(inputAdcVector, channel, plane, wire, truncMean, rmsVal, pedCorVal);
+            fCharacterizationAlg.getMeanRmsAndPedCor(inputAdcVector, event.time().value(), channel, plane, wire, truncMean, rmsVal, pedCorVal);
             
             // Recover the database version of the pedestal
-            float pedestal = fPedestalRetrievalAlg.PedMean(channel);
+            float pedestal = fPedestalRetrievalAlg.PedMean(event.time().value(), channel);
 
             std::transform(inputAdcVector.begin(),inputAdcVector.end(),rawadc.begin(),std::bind(std::minus<short>(),std::placeholders::_1,pedCorVal));
             

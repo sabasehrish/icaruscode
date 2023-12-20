@@ -121,7 +121,7 @@ private:
     /**
      *  @brief Given the ClusterHit2D objects, build the HitPairMap
      */
-    void BuildHit3D(reco::HitPairList& hitPairList) const;
+    void BuildHit3D(lariov::ChannelStatusData const& channelStatus, reco::HitPairList& hitPairList) const;
 
     /**
      *  @brief Create a new 2D hit collection from hits associated to 3D space points
@@ -223,7 +223,7 @@ private:
     /**
      *  @brief Create the internal channel status vector (assume will eventually be event-by-event)
      */
-    void BuildChannelStatusVec(PlaneToWireToHitSetMap& planeToWiretoHitSetMap) const;
+    void BuildChannelStatusVec(lariov::ChannelStatusData const& channelStatus, PlaneToWireToHitSetMap& planeToWiretoHitSetMap) const;
 
     /**
      * @brief Perform charge integration between limits
@@ -319,12 +319,10 @@ private:
     mutable bool                            m_weHaveAllBeenHereBefore = false;
 
     const geo::Geometry*                    m_geometry;              //< pointer to the Geometry service
-    const lariov::ChannelStatusProvider*    m_channelFilter;
+    art::ServiceHandle<lariov::ChannelStatusService> m_channelFilter;
 };
 
-SnippetHit3DBuilderICARUS::SnippetHit3DBuilderICARUS(fhicl::ParameterSet const &pset) :
-    m_channelFilter(&art::ServiceHandle<lariov::ChannelStatusService const>()->GetProvider())
-
+SnippetHit3DBuilderICARUS::SnippetHit3DBuilderICARUS(fhicl::ParameterSet const &pset)
 {
     this->configure(pset);
 }
@@ -453,7 +451,7 @@ void SnippetHit3DBuilderICARUS::clear()
     return;
 }
 
-void SnippetHit3DBuilderICARUS::BuildChannelStatusVec(PlaneToWireToHitSetMap& planeToWireToHitSetMap) const
+void SnippetHit3DBuilderICARUS::BuildChannelStatusVec(lariov::ChannelStatusData const& channelStatus, PlaneToWireToHitSetMap& planeToWireToHitSetMap) const
 {
     // This is called each event, clear out the previous version and start over
     m_channelStatus.clear();
@@ -473,11 +471,11 @@ void SnippetHit3DBuilderICARUS::BuildChannelStatusVec(PlaneToWireToHitSetMap& pl
     {
         try
         {  
-            if( m_channelFilter->IsPresent(channel) && !m_channelFilter->IsGood(channel))
+            if( channelStatus.IsPresent(channel) && !channelStatus.IsGood(channel))
             {
                 std::vector<geo::WireID>                wireIDVec = m_geometry->ChannelToWire(channel);
                 geo::WireID                             wireID    = wireIDVec[0];
-                lariov::ChannelStatusProvider::Status_t chanStat  = m_channelFilter->Status(channel);
+                auto chanStat  = channelStatus.Status(channel);
 
                 m_channelStatus[wireID.Plane][wireID.Wire] = chanStat;
                 m_numBadChannels++;
@@ -550,10 +548,11 @@ void SnippetHit3DBuilderICARUS::Hit3DBuilder(art::Event& evt, reco::HitPairList&
     this->CollectArtHits(evt);
 
     // If there are no hits in our view/wire data structure then do not proceed with the full analysis
+    auto const channelStatus = m_channelFilter->DataFor(evt); 
     if (!m_planeToWireToHitSetMap.empty())
     {
         // Call the algorithm that builds 3D hits
-        this->BuildHit3D(hitPairList);
+        this->BuildHit3D(*channelStatus, hitPairList);
 
         // If we built 3D points then attempt to output a new hit list as well
         if (!hitPairList.empty())
@@ -587,7 +586,7 @@ void SnippetHit3DBuilderICARUS::Hit3DBuilder(art::Event& evt, reco::HitPairList&
     return;
 }
 
-void SnippetHit3DBuilderICARUS::BuildHit3D(reco::HitPairList& hitPairList) const
+void SnippetHit3DBuilderICARUS::BuildHit3D(lariov::ChannelStatusData const& channelStatus, reco::HitPairList& hitPairList) const
 {
     /**
      *  @brief Driver for processing input 2D hits, transforming to 3D hits and building lists
@@ -600,7 +599,7 @@ void SnippetHit3DBuilderICARUS::BuildHit3D(reco::HitPairList& hitPairList) const
     // The first task is to take the lists of input 2D hits (a map of view to sorted lists of 2D hits)
     // and then to build a list of 3D hits to be used in downstream processing
     std::cout << "--> Calling BuildChannelStatusVec" << std::endl;
-    BuildChannelStatusVec(m_planeToWireToHitSetMap);
+    BuildChannelStatusVec(channelStatus, m_planeToWireToHitSetMap);
     std::cout << "--- done with channel status building" << std::endl;
 
     size_t numHitPairs = BuildHitPairMap(m_planeToSnippetHitMap, hitPairList);

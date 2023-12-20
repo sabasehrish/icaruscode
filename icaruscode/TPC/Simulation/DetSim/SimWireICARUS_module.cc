@@ -58,7 +58,6 @@
 #include "larevt/CalibrationDBI/Interface/DetPedestalService.h"
 #include "larevt/CalibrationDBI/Interface/DetPedestalProvider.h"
 #include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
-#include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 #include "tools/IGenNoise.h"
 #include "icarus_signal_processing/Filters/ICARUSFFT.h"
 
@@ -260,7 +259,7 @@ void SimWireICARUS::produce(art::Event& evt)
     const lariov::DetPedestalProvider& pedestalRetrievalAlg = art::ServiceHandle<lariov::DetPedestalService>()->GetPedestalProvider();
     
     //channel status for simulating dead channels
-    const lariov::ChannelStatusProvider& ChannelStatusProvider = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+    auto const channelStatus = art::ServiceHandle<lariov::ChannelStatusService>()->DataFor(evt);
     
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
     
@@ -384,11 +383,11 @@ void SimWireICARUS::produce(art::Event& evt)
             size_t                   board   = wire / 32;
             
             //Get pedestal with random gaussian variation
-            float ped_mean = pedestalRetrievalAlg.PedMean(channel);
+            float ped_mean = pedestalRetrievalAlg.PedMean(evt.time().value(), channel);
             
             if (fSmearPedestals )
             {
-                CLHEP::RandGaussQ rGaussPed(fPedestalEngine, 0.0, pedestalRetrievalAlg.PedRms(channel));
+                CLHEP::RandGaussQ rGaussPed(fPedestalEngine, 0.0, pedestalRetrievalAlg.PedRms(evt.time().value(), channel));
                 ped_mean += rGaussPed.fire();
             }
             
@@ -429,7 +428,7 @@ void SimWireICARUS::produce(art::Event& evt)
             const sim::SimChannel* simChan = channels[channel];
             
             // If there is something on this wire, and it is not dead, then add the signal to the wire
-            if(simChan && !(fSimDeadChannels && (ChannelStatusProvider.IsBad(channel) || !ChannelStatusProvider.IsPresent(channel))))
+            if(simChan && !(fSimDeadChannels && (channelStatus->IsBad(channel) || !channelStatus->IsPresent(channel))))
             {
                 std::fill(chargeWork.begin(), chargeWork.end(), 0.);
                 

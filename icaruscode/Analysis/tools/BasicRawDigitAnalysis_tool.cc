@@ -14,6 +14,7 @@
 #include "icaruscode/TPC/Utilities/SignalShapingICARUSService_service.h"
 #include "lardataalg/DetectorInfo/DetectorClocks.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "larevt/CalibrationDBI/Interface/CalibrationDBIFwd.h"
 #include "larevt/CalibrationDBI/Interface/DetPedestalService.h"
 #include "larevt/CalibrationDBI/Interface/DetPedestalProvider.h"
 
@@ -93,7 +94,8 @@ public:
     void fillHistograms(const detinfo::DetectorClocksData& clockData,
                         const detinfo::DetectorPropertiesData& detProp,
                         const IRawDigitHistogramTool::RawDigitPtrVec&,
-                        const IRawDigitHistogramTool::SimChannelMap&) const override;
+                        const IRawDigitHistogramTool::SimChannelMap&, 
+                        const lariov::DBTimeStamp_t ts) const override;
     
 private:
     void filterFFT(const detinfo::DetectorClocksData& clockData,
@@ -325,7 +327,8 @@ void BasicRawDigitAnalysis::initializeHists(detinfo::DetectorClocksData const& c
 void BasicRawDigitAnalysis::fillHistograms(const detinfo::DetectorClocksData& clockData,
                                            const detinfo::DetectorPropertiesData& detProp,
                                            const IRawDigitHistogramTool::RawDigitPtrVec& rawDigitPtrVec,
-                                           const IRawDigitHistogramTool::SimChannelMap&  channelMap) const
+                                           const IRawDigitHistogramTool::SimChannelMap&  channelMap, 
+                                           const lariov::DBTimeStamp_t ts) const
 {
     // Sadly, the RawDigits come to us in an unsorted condition which is not optimal for
     // what we want to do here. So we make a vector of pointers to the input raw digits and sort them
@@ -415,7 +418,7 @@ void BasicRawDigitAnalysis::fillHistograms(const detinfo::DetectorClocksData& cl
         raw::Uncompress(rawDigit->ADCs(), rawadc, rawDigit->Compression());
         
         // Recover the database version of the pedestal
-        float pedestal = fPedestalRetrievalAlg.PedMean(channel);
+        float pedestal = fPedestalRetrievalAlg.PedMean(channel, ts);
         
         filterFFT(clockData, detProp, rawadc, channel, plane, wire, pedestal, hasSignal);
         

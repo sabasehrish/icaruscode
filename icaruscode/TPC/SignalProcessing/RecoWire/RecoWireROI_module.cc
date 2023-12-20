@@ -113,7 +113,7 @@ private:
     
     const geo::GeometryCore&                        fGeometry;
     icarusutil::SignalShapingICARUSService&         fSignalServices;
-    const lariov::ChannelStatusProvider&            fChanFilt;
+    const art::ServiceHandle<lariov::ChannelStatusService> fChanFilt;
     std::unique_ptr<icarus_signal_processing::ICARUSFFT<double>>  fFFT;                  ///< Object to handle thread safe FFT
 }; // class RecoWireROI
 
@@ -122,8 +122,7 @@ DEFINE_ART_MODULE(RecoWireROI)
 //-------------------------------------------------
 RecoWireROI::RecoWireROI(fhicl::ParameterSet const& pset) : EDProducer{pset},
     fGeometry(*lar::providerFrom<geo::Geometry>()),
-    fSignalServices(*art::ServiceHandle<icarusutil::SignalShapingICARUSService>()),
-    fChanFilt(art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider())
+    fSignalServices(*art::ServiceHandle<icarusutil::SignalShapingICARUSService>())
 {
     this->reconfigure(pset);
 
@@ -258,6 +257,7 @@ void RecoWireROI::produce(art::Event& evt)
     
     // loop over all wires
     wirecol->reserve(digitVecHandle->size());
+    auto const channelStatus = fChanFilt->DataFor(evt);
     for(size_t rdIter = 0; rdIter < digitVecHandle->size(); ++rdIter)
     {
         // vector that will be moved into the Wire object
@@ -271,13 +271,13 @@ void RecoWireROI::produce(art::Event& evt)
         channel = digitVec->Channel();
 
         // The following test is meant to be temporary until the "correct" solution is implemented
-        if (!fChanFilt.IsPresent(channel)) continue;
+        if (!channelStatus->IsPresent(channel)) continue;
 
         // Testing an idea about rejecting channels
         if (digitVec->GetPedestal() < 0.) continue;
         
         // skip bad channels
-        if( fChanFilt.Status(channel) >= fMinAllowedChanStatus)
+        if( channelStatus->Status(channel) >= fMinAllowedChanStatus)
         {
             size_t dataSize = digitVec->Samples();
             
@@ -314,7 +314,7 @@ void RecoWireROI::produce(art::Event& evt)
             // loop over all adc values and subtract the pedestal
             // When we have a pedestal database, can provide the digit timestamp as the third argument of GetPedestalMean
             size_t numBins   = 2 * fNumBinsHalf + 1;
-            float  pdstl     = pedestalRetrievalAlg.PedMean(channel);
+            float  pdstl     = pedestalRetrievalAlg.PedMean(evt.time().value(), channel);
             float  rms_noise = digitVec->GetSigma();
             float  raw_noise = fSignalServices.GetRawNoise(channel);
             

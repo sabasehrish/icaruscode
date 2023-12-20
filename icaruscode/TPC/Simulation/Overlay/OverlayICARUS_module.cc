@@ -278,7 +278,7 @@ void OverlayICARUS::produce(art::Event& evt)
                 fFFT->convolute(chargeWork, response.getConvKernel(), fSignalShapingService->ResponseTOffset(channel));
 
                 //Get the pedestal and rms from the input waveform
-                float pedestal = fPedestalRetrievalAlg.PedMean(channel);
+                float pedestal = fPedestalRetrievalAlg.PedMean(evt.time().value(),channel);
 
                 // "Make" the ADC vector
                 MakeADCVec(adcvec, chargeWork, pedestal);

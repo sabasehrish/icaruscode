@@ -70,27 +70,26 @@ icarus::calo::NormalizeTPCSQL::NormalizeTPCSQL(fhicl::ParameterSet const &pset):
 void icarus::calo::NormalizeTPCSQL::configure(const fhicl::ParameterSet& pset) {}
 
 icarus::calo::NormalizeTPCSQL::ScaleInfo icarus::calo::NormalizeTPCSQL::GetScaleInfo(uint64_t timestamp) {
+  // Note: Concurrent caching can be used here, 
+  // see larevt/CalibrationDBI/Providers/DetPedestalRetrievalAlg.cxx for an example
+  
   // check the cache
   if (fScaleInfos.count(timestamp)) {
     return fScaleInfos.at(timestamp);
   }
 
   // Lookup the data
-  fDB.UpdateData(timestamp*1e9);
+  auto dataset = fDB.GetDataset(timestamp*1e9);
 
   // Collect the timestamp info
   ScaleInfo thisscale;
 
   // Iterate over the rows
   for (unsigned ch = 0; ch < 4; ch++) {
-    double scale;
-    fDB.GetNamedChannelData(ch, "scale", scale);
-
-    thisscale.scale[ch] = scale;
+    thisscale.scale[ch] = dataset.GetDataAsDouble(ch, "scale");
   }
   // Set the cache
   fScaleInfos[timestamp] = thisscale;
-
   return thisscale;
 }
 

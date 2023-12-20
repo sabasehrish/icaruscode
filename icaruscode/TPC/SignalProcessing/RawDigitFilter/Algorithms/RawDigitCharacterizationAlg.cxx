@@ -270,6 +270,7 @@ void RawDigitCharacterizationAlg::getTruncatedRMS(const RawDigitVector& rawWavef
 }
 
 void RawDigitCharacterizationAlg::getMeanRmsAndPedCor(const RawDigitVector& rawWaveform,
+                                                      lariov::DBTimeStamp_t ts,
                                                       unsigned int          channel,
                                                       unsigned int          view,
                                                       unsigned int          wire,
@@ -289,7 +290,7 @@ void RawDigitCharacterizationAlg::getMeanRmsAndPedCor(const RawDigitVector& rawW
     
     try
     {
-        pedestal = fPedestalRetrievalAlg.PedMean(channel);
+        pedestal = fPedestalRetrievalAlg.PedMean(ts, channel);
     }
     catch(...)
     {

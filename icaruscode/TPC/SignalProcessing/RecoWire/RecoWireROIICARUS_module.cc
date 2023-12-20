@@ -232,7 +232,7 @@ void RecoWireROIICARUS::produce(art::Event& evt)
     
     raw::ChannelID_t channel = raw::InvalidChannelID; // channel number
     
-    const lariov::ChannelStatusProvider& chanFilt = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+    auto const channelStatus = art::ServiceHandle<lariov::ChannelStatusService const>()->DataFor(evt);
     
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
     double const samplingRate = sampling_rate(clockData);
@@ -248,7 +248,7 @@ void RecoWireROIICARUS::produce(art::Event& evt)
         channel = digitVec->Channel();
       
         // The following test is meant to be temporary until the "correct" solution is implemented
-        if (!chanFilt.IsPresent(channel)) continue;
+        if (!channelStatus->IsPresent(channel)) continue;
 
         // Testing an idea about rejecting channels
         if (digitVec->GetPedestal() < 0.) continue;
@@ -256,7 +256,7 @@ void RecoWireROIICARUS::produce(art::Event& evt)
         float pedestal = 0.;
         
         // skip bad channels
-        if( chanFilt.Status(channel) >= fMinAllowedChanStatus)
+        if( channelStatus->Status(channel) >= fMinAllowedChanStatus)
         {
             size_t dataSize = digitVec->Samples();
             
@@ -272,7 +272,7 @@ void RecoWireROIICARUS::produce(art::Event& evt)
             
             // loop over all adc values and subtract the pedestal
             // When we have a pedestal database, can provide the digit timestamp as the third argument of GetPedestalMean
-            pedestal = pedestalRetrievalAlg.PedMean(channel);
+            pedestal = pedestalRetrievalAlg.PedMean(evt.time().value(), channel);
             
             // Get the pedestal subtracted data, centered in the deconvolution vector
             std::vector<float> rawAdcLessPedVec(dataSize);

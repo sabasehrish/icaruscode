@@ -260,8 +260,7 @@ void SimReadoutBoardICARUS::produce(art::Event& evt)
 //    const lariov::DetPedestalProvider& pedestalRetrievalAlg = art::ServiceHandle<lariov::DetPedestalService>()->GetPedestalProvider();
     
     //channel status for simulating dead channels
-    const lariov::ChannelStatusProvider& ChannelStatusProvider = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
-    
+    auto const channelStatus = art::ServiceHandle<lariov::ChannelStatusService>()->DataFor(evt);
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
     
     // get the geometry to be able to figure out signal types and chan -> plane mappings
@@ -427,7 +426,7 @@ void SimReadoutBoardICARUS::produce(art::Event& evt)
             const sim::SimChannel* simChan = channels[channel];
 
             // If there is something on this wire, and it is not dead, then add the signal to the wire
-            if(simChan && !(fSimDeadChannels && (ChannelStatusProvider.IsBad(channel) || !ChannelStatusProvider.IsPresent(channel))))
+            if(simChan && !(fSimDeadChannels && (channelStatus->IsBad(channel) || !channelStatus->IsPresent(channel))))
             {
                 double gain         = fSignalShapingService->GetASICGain(channel) * sampling_rate(clockData) * 1.e-3; // Gain returned is electrons/us, this converts to electrons/tick
                 int    timeOffset   = fSignalShapingService->ResponseTOffset(channel);
